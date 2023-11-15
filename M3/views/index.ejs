@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	
+</head>
+
+<body>
+
+</body>
+
+<button type="button0" id="button0">Acceleration X</button>
+<button type="button1" id="button1">Acceleration Y</button>
+<button type="button2" id="button2">Acceleration Z</button>
+<button type="button3" id="button3">Gyroscope X</button>  
+<button type="button4" id="button4">Gyroscope Y</button>
+<button type="button5" id="button5">Gyroscope Z</button>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<script type="application/javascript">
+
+	const SERVERADDRESS = "http://127.0.0.1:3001"
+    const mappings = {"Acceleration,x" : "#button0", "Acceleration,y" : "#button1", "Acceleration,z" : "#button2",
+        "Gyroscope,x" : "#button3", "Gyroscope,y" : "#button4", "Gyroscope,z" : "#button5"
+    }
+
+	// use XML HTTP request to grab data from the server (central)
+	let xmlhttp = new XMLHttpRequest()
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			let responseText = xmlhttp.responseText
+			let sensorValue = JSON.parse(responseText).sensorValue
+            let dataSplit = sensorValue.split(';')
+
+            if (dataSplit.length > 0) {
+                for (let data of dataSplit) {
+                    [ typeOfData, axis, value ] = data.split(',')
+                    value = Math.abs(Number(value))
+                    let output = 0
+                    if (typeOfData === 'Acceleration') {
+                        output = value / 4
+                    }
+                    else {
+                        output = value / 2000
+                    }
+
+                    let rgba = `rgba(255, 99, 71, ${output})`
+                    d3.select(mappings[typeOfData + "," + axis]).style("background-color", rgba).text(`${typeOfData} ${axis}: ${value}`)
+                    console.log(mappings[typeOfData + "," + axis], output)
+                }
+            }
+
+            // d3.select("#button0").style("background-color", "rgba(255, 99, 71, 1)")
+			// let colorValue = Math.max(0, Math.min((sensorValue + 1) * 0.5, 1))
+
+            console.log(dataSplit)
+		}
+	}
+
+	// periodically grab data
+	let getData = () => {
+		xmlhttp.open("POST", SERVERADDRESS, true)
+		xmlhttp.setRequestHeader("Content-type", "application/json")
+		xmlhttp.send("")
+		setTimeout(() => {
+			getData()
+		}, 400)
+	}
+
+	getData()
+
+</script>
+
+</html>
