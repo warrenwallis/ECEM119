@@ -66,7 +66,7 @@ void clientPublish(String output, float num) {
 void displayIMU() {
   float x, y, z;
 
-  String output = "";
+  String output = "Player,1;";
   bool first = false, second = false;
   if (IMU.accelerationAvailable()) {
     IMU.readAcceleration(x, y, z);
