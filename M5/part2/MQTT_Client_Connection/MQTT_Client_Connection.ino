@@ -8,7 +8,7 @@ const char *password = "abcd1234";  // Enter WiFi password
 
 // MQTT Broker
 const char *mqtt_broker = "mqtt.eclipseprojects.io";
-const char *topic = "ECEM119_2";
+const char *topic = "ECEM119";
 // const char *mqtt_username = "emqx";
 // const char *mqtt_password = "public";
 const int mqtt_port = 1883;
@@ -66,7 +66,7 @@ void clientPublish(String output, float num) {
 void displayIMU() {
   float x, y, z;
 
-  String output = "Player,2;";
+  String output = "";
   bool first = false, second = false;
   if (IMU.accelerationAvailable()) {
     IMU.readAcceleration(x, y, z);

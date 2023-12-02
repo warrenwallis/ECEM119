@@ -7,8 +7,8 @@ const char *ssid = "abc123"; // Enter your WiFi name
 const char *password = "abcd1234";  // Enter WiFi password
 
 // MQTT Broker
-const char *mqtt_broker = "mqtt.eclipseprojects.io";
-const char *topic = "ECEM119";
+const char *mqtt_broker = "test.mosquitto.org";
+const char *topic = "ECEM119_1";
 // const char *mqtt_username = "emqx";
 // const char *mqtt_password = "public";
 const int mqtt_port = 1883;

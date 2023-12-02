@@ -12,16 +12,16 @@ import os
 import paho.mqtt.client as mqtt
 import numpy as np
 
-data_out_1, data_out_2 = None, None
+data_out = None
 
-class mqtt_publisher1():
+class mqtt_publisher():
     # 0. define callbacks - functions that run when events happen.
     # The callback for when the client receives a CONNACK response from the server.
     def on_connect(client, userdata, flags, rc):
         print("Connection returned result: " + str(rc))
         # Subscribing in on_connect() means that if we lose the connection and
         # reconnect then subscriptions will be renewed.
-        client.subscribe('ECEM119_1')
+        client.subscribe("ECEM119")
         # The callback of the client when it disconnects.
 
     def on_disconnect(client, userdata, rc):
@@ -40,84 +40,22 @@ class mqtt_publisher1():
         player_data = data.pop(0)
         mode, pre_player = player_data.split(',')
         player = int(pre_player)
-        
+
         mappings = {'Acceleration': {}, 'Gyroscope': {}}
         for d in data:
             degree, axis, value = d.split(',')
             mappings[degree][axis] = float(value)
-        
-        print(player, data)
-        if (player == 1):
-            global data_out_1
-            data_out_1 = mappings
-        if (player == 2):
-            global data_out_2
-            data_out_2 = mappings
-                
-    # 1. create a client instance.
-    client = mqtt.Client()
-    # add additional client options (security, certifications, etc.)
-    # many default options should be good to start off.
-    # add callbacks to client.
-    client.on_connect = on_connect
-    client.on_disconnect = on_disconnect
-    client.on_message = on_message
 
-    # 2. connect to a broker using one of the connect*() functions.
-    client.connect_async("test.mosquitto.org")
-    # client.connect_async('mqtt.eclipseprojects.io')
+        movement_speed = 2
 
-    # 3. call one of the loop*() functions to maintain network traffic flow with the broker.
-    client.loop_start()
-
-    # 4. use subscribe() to subscribe to a topic and receive messages.
-    # 5. use publish() to publish messages to the broker.
-    # payload must be a string, bytearray, int, float or None.
-    #client.publish("ECEM119", curr, qos=1)
-
-    # 6. use disconnect() to disconnect from the broker.
-    # client.loop_stop()
-    # client.disconnect()
-
-class mqtt_publisher2():
-    # 0. define callbacks - functions that run when events happen.
-    # The callback for when the client receives a CONNACK response from the server.
-    def on_connect(client, userdata, flags, rc):
-        print("Connection returned result: " + str(rc))
-        # Subscribing in on_connect() means that if we lose the connection and
-        # reconnect then subscriptions will be renewed.
-        client.subscribe('ECEM119_2')
-        # The callback of the client when it disconnects.
-
-    def on_disconnect(client, userdata, rc):
-        if rc != 0:
-            print('Unexpected Disconnect')
+        global data_out
+        if mappings['Acceleration']['x'] < -0.5:
+            data_out = -movement_speed
+        elif mappings['Acceleration']['x'] > 0.5:
+            data_out = movement_speed
         else:
-            print('Expected Disconnect')
-        # The default message callback.
-        # (won't be used if only publishing, but can still exist)
+            data_out = 0
 
-    def on_message(client, userdata, message):
-        message = str(message.payload)[2:-1]
-        # print('Received message: ', message)
-        data = message.split(';')
-
-        player_data = data.pop(0)
-        mode, pre_player = player_data.split(',')
-        player = int(pre_player)
-        
-        mappings = {'Acceleration': {}, 'Gyroscope': {}}
-        for d in data:
-            degree, axis, value = d.split(',')
-            mappings[degree][axis] = float(value)
-        
-        print(player, data)
-        if (player == 1):
-            global data_out_1
-            data_out_1 = mappings
-        if (player == 2):
-            global data_out_2
-            data_out_2 = mappings
                 
     # 1. create a client instance.
     client = mqtt.Client()
@@ -143,7 +81,6 @@ class mqtt_publisher2():
     # 6. use disconnect() to disconnect from the broker.
     # client.loop_stop()
     # client.disconnect()
-
 
 #Window
 wn = turtle.Screen()  # we need a screen
@@ -187,7 +124,7 @@ paddle_a = turtle.Turtle()
 paddle_a.speed(0)
 paddle_a.shape("square")
 paddle_a.color("white")
-paddle_a.shapesize(stretch_wid=9, stretch_len=1)
+paddle_a.shapesize(stretch_wid=4, stretch_len=1)
 paddle_a.penup()
 paddle_a.goto(-350, 0)
 paddle_a.hideturtle()
@@ -248,36 +185,19 @@ def paddle_a_down():
 #         y -= 40
 #         paddle_b.sety(y)
 
-def move_player_1():
-    acc_y = data_out_1['Acceleration']['y']
+def move_player():
+    acc_y = data_out
     
     # normalize
     y = paddle_b.ycor()
 
     if acc_y > 0 and paddle_b.ycor() < 205:
-        acc_y = min(1, acc_y)
-        
-
+        y += acc_y
+        paddle_b.sety(y)
     if acc_y < 0 and paddle_b.ycor() > -205:
-        acc_y = max(-1, acc_y)
+        y += acc_y
+        paddle_b.sety(y)
 
-    paddle_b.sety(acc_y * 204)
-    print(acc_y * 204)
-
-def move_player_2():
-    acc_y = data_out_2['Acceleration']['y']
-    
-    # normalize
-    y = paddle_a.ycor()
-
-    if acc_y > 0 and paddle_a.ycor() < 205:
-        acc_y = min(1, acc_y)
-        
-
-    if acc_y < 0 and paddle_a.ycor() > -205:
-        acc_y = max(-1, acc_y)
-
-    paddle_a.sety(acc_y * 204)
     print(acc_y * 204)
 
 aiPaddle = paddle_a
@@ -313,25 +233,19 @@ def updateScore():
 
 
 #Main Loop
-mqtt_client_1 = mqtt_publisher1()
-mqtt_client_2 = mqtt_publisher2()
+mqtt_client = mqtt_publisher()
 paddle_a.showturtle()
 paddle_b.showturtle()
 
 while True:
-    if (version != 'singleplayer'):
-        while data_out_2 is None:
-            print('No input found for player 2')
-    while data_out_1 is None:
-            print('No input found for player 1')
+    while data_out is None:
+        print('No input found')
     wn.update()
     ball.setx(ball.xcor() + ball.dx)
     ball.sety(ball.ycor() + ball.dy)
-    move_player_1()
+    move_player()
     if(version == "singleplayer"):
         ai_paddle_move()
-    else:
-        move_player_2()
     updateScore()
 
     #border checking
@@ -363,7 +277,7 @@ while True:
             os.system("aplay bounce.wav&")
 
     if (ball.xcor() < -340 and ball.xcor() > -350):
-        if ball.ycor() < paddle_a.ycor() + 100 and ball.ycor() > paddle_a.ycor() - 100:
+        if ball.ycor() < paddle_a.ycor() + 50 and ball.ycor() > paddle_a.ycor() - 50:
             ball.setx(-335)
             ball.dx *= -1
             os.system("aplay bounce.wav&")
